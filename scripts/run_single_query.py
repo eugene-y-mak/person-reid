@@ -1,6 +1,23 @@
 import torchreid
 from torchvision.io import read_image
+import torch
 
+def euclidean_squared_distance(input1, input2):
+    """Computes euclidean squared distance.
+
+    Args:
+        input1 (torch.Tensor): 2-D feature matrix.
+        input2 (torch.Tensor): 2-D feature matrix.
+
+    Returns:
+        torch.Tensor: distance matrix.
+    """
+    m, n = input1.size(0), input2.size(0)
+    mat1 = torch.pow(input1, 2).sum(dim=1, keepdim=True).expand(m, n)
+    mat2 = torch.pow(input2, 2).sum(dim=1, keepdim=True).expand(n, m).t()
+    distmat = mat1 + mat2
+    distmat.addmm_(input1, input2.t(), beta=1, alpha=-2)
+    return distmat
 
 class EngineRunner:
     def __init__(self, query_path, gallery_path):
@@ -20,6 +37,7 @@ class EngineRunner:
             pretrained=True
         )
         torchreid.utils.load_pretrained_weights(model, "pretrained/osnet_x0_5_market.pth")
+        model.eval()  # don't want to train
         self.model = model
 
     """
@@ -47,12 +65,20 @@ class EngineRunner:
         query_features = self.extract_features(query)
         gallery_features = self.extract_features(gallery)
 
+        # not sure what this does, but scared what happens if I don't
+        query_features = query_features.cpu()
+        gallery_features = gallery_features.cpu()
         # 3.) compute distance. Before, was distance matrix, but also had many queries and galleries, so unnecessary.
-        print(query_features)
+        # try euclidean distance
+        dist = euclidean_squared_distance(query_features, gallery_features)
+        print(dist)
+        # correct: 22522.7500
+        # wrong: 70822.5000
         # 4.) Somehow use distance value and determine if counts as a match or not
 
 
-
 if __name__ == "__main__":
-    engine_runner = EngineRunner("single_query_test/query/probe.jpeg", "single_query_test/gallery/correct.jpeg")
+    QUERY_PATH = "single_query_test/query/probe.jpeg"
+    TEST_PATH = "single_query_test/gallery/wrong.jpeg"
+    engine_runner = EngineRunner(QUERY_PATH, TEST_PATH)
     engine_runner.run()
