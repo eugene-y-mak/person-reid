@@ -21,7 +21,7 @@ class SingleQueryModel:
     def __init__(self, model_name, weight_path, query_path):
         self.model_name = model_name
         self.model = None
-        self.is_torchreid = True
+        self.is_torchreid = False
         self.weight_path = weight_path
         self.query_path = query_path
         self.euclidean = False
@@ -102,12 +102,12 @@ class SingleQueryModel:
             with torch.no_grad():
                 return self.model(img.float())
         else:
-            print(img.shape)
+            #print(img.shape)
             blob = cv2.dnn.blobFromImage(img, 0.5, (128, 256), (128, 128, 128), False, False)
-            print(blob.shape)
+            #print(blob.shape)
             self.model.setInput(blob)
             res = self.model.forward()
-            print(res.shape)
+           # print(res.shape)
             return cv2.normalize(res, None)
 
 
@@ -164,27 +164,30 @@ if __name__ == "__main__":
     # ain 1_0: [0.024422288, 0.099429786, 0.18903148, 0.011394441, 0.56568325]
     # ibn 1_0: [0.04042691, 0.57059103, 0.6661659, 0.3205316, 0.5463598]
 
-    MODEL = "osnet_x1_0"
+    MODEL = "osnet_x0_5"
     directory = 'single_query_test/test'
     #directory = 'reid-data/grid/underground_reid/probe'
     TEST_PATHS = get_all_file_paths(directory)
-    WEIGHT_PATH = "pretrained/osnet_x1_0_imagenet.pth"
+    WEIGHT_PATH = "pretrained/osnet_x0_5_imagenet.pth"
     #QUERY_PATH = 'reid-data/grid/underground_reid/probe/0005_2_25100_229_94_99_249.jpeg'
-    QUERY_PATH = "single_query_test/test/nikita2.png"
+    QUERY_PATH = "single_query_test/test/nikita4.png"
     dists = []
     for i, test in enumerate(TEST_PATHS):
         print(f"----------------------Image {i + 1}-----------------------")
+        print(test)
         engine_runner = SingleQueryModel(MODEL, WEIGHT_PATH, QUERY_PATH)
-        dists.append(engine_runner.test_image(test))
-    print(TEST_PATHS)
-    print(dists)
-    dists = np.array(dists)
+        dist = engine_runner.test_image(test)
+        print(dist)
+        dists.append(dist)
+    #print(TEST_PATHS)
+    #print(dists)
+   # dists = np.array(dists)
 
-    THRESHOLD_DIST = 0.01  # HIGHLY suspect prechosen hyperparameter, but dunno how else to tell
-    indices = np.where(dists < THRESHOLD_DIST)[0]
-    print(indices)
-    print(dists[indices])
-    matching_paths = np.array(TEST_PATHS)[indices]
-    print(matching_paths)
+    # THRESHOLD_DIST = 0.01  # HIGHLY suspect prechosen hyperparameter, but dunno how else to tell
+    # indices = np.where(dists < THRESHOLD_DIST)[0]
+    # print(indices)
+    # print(dists[indices])
+    # matching_paths = np.array(TEST_PATHS)[indices]
+    # print(matching_paths)
     # with open('dist.pkl', 'wb') as handle:
     #     pickle.dump(dists, handle, protocol=pickle.HIGHEST_PROTOCOL)
